@@ -7,7 +7,7 @@ pipeline {
             steps { 
                 sh 'whoami'
                 sh 'docker --version'
-                sh 'kubectl version --client'
+                sh 'kubectl version --client' 
             }
         }
 
