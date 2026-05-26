@@ -3,15 +3,6 @@ pipeline {
 
     stages {
 
-        stage('Clone Repository') {
-            steps {   
-                echo 'Cloning repository...'
-                git branch: 'main', 
-                credentialsId: 'github-creds',
-                url: 'https://github.com/pravinchoudhar-01/Cloud-Native-DevSecOps-Platform-App.git'
-            }
-        }
-
         stage('Verify Server') {
             steps {
                 sh 'whoami'
@@ -20,11 +11,17 @@ pipeline {
             }
         }
 
-        stage('Build Frontend Docker Image') {
+        stage('Show Workspace') {
             steps {
-                sh 'docker build -t frontend-test -f ./app/frontend/Dockerfile ./app/frontend'
+                sh 'pwd'
+                sh 'find . -maxdepth 3'
             }
         }
 
+        stage('Build Frontend Docker Image') {
+            steps {
+                sh 'docker build -t frontend-test -f app/frontend/Dockerfile app/frontend'
+            }
+        }
     }
 }
