@@ -4,7 +4,7 @@ pipeline {
     stages {
 
         stage('Clone Repository') {
-            steps {
+            steps {  
                 echo 'Cloning repository...'
                 git branch: 'main',
                 credentialsId: 'github-creds',
