@@ -1,54 +1,35 @@
 pipeline {
     agent any
 
-    tools {
-        jdk 'jdk'
-        nodejs 'nodejs'
-    }
-
     environment {
-        SCANNER_HOME       = tool 'sonar-scanner'
-        AWS_ACCOUNT_ID     = credentials('ACCOUNT_ID')
-        AWS_ECR_REPO_NAME  = credentials('ECR_REPO_FRONTEND')
-        AWS_DEFAULT_REGION = 'us-east-1'
-        REPOSITORY_URI     = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
-        APP_DIR            = "app/frontend"
-        GIT_USER_NAME      = "pravinchoudhar-01"
-        GIT_REPO_NAME      = "Cloud-Native-DevSecOps-Platform-App"
-    }
-
-    triggers {
-        githubPush()
+        APP_DIR = "app/frontend"
+        SONAR_SCANNER = tool 'sonar-scanner'
     }
 
     stages {
 
-        stage('Clean Workspace') {
-            steps {
-                cleanWs()
-            }
-        }
-
         stage('Checkout Code') {
             steps {
-                git credentialsId: 'GITHUB',
-                    branch: 'master',
-                    url: 'https://github.com/pravinchoudhar-01/Cloud-Native-DevSecOps-Platform-App.git'
+                checkout scm
             }
         }
 
         stage('Detect Frontend Changes') {
             steps {
                 script {
+
                     def changedFiles = sh(
                         script: "git diff --name-only HEAD~1 HEAD",
                         returnStdout: true
                     ).trim()
 
-                    echo "Changed Files:\n${changedFiles}"
+                    echo "Changed Files:"
+                    echo changedFiles
 
                     if (!changedFiles.contains("app/frontend/")) {
+
                         currentBuild.result = 'NOT_BUILT'
+
                         error("No frontend changes detected. Skipping pipeline.")
                     }
                 }
@@ -57,14 +38,18 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
+
                 dir("${APP_DIR}") {
+
                     withSonarQubeEnv('sonar-server') {
-                        sh '''
-                            $SCANNER_HOME/bin/sonar-scanner \
-                              -Dsonar.projectName=cloud-native-frontend \
-                              -Dsonar.projectKey=cloud-native-frontend \
-                              -Dsonar.sources=src
-                        '''
+
+                        sh """
+                            ${SONAR_SCANNER}/bin/sonar-scanner \
+                            -Dsonar.projectKey=frontend-app \
+                            -Dsonar.projectName=frontend-app \
+                            -Dsonar.sources=. \
+                            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+                        """
                     }
                 }
             }
@@ -72,95 +57,67 @@ pipeline {
 
         stage('Quality Gate') {
             steps {
-                script {
-                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
-                }
-            }
-        }
 
-        stage('OWASP Dependency Check') {
-            steps {
-                dir("${APP_DIR}") {
-                    dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit',
-                                    odcInstallation: 'DP-Check'
-                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                timeout(time: 5, unit: 'MINUTES') {
+
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
 
         stage('Trivy Filesystem Scan') {
             steps {
+
                 dir("${APP_DIR}") {
-                    sh 'trivy fs . > trivyfs.txt'
-                    echo "Trivy FS scan done — check trivyfs.txt"
-                }
-            }
-        }
 
-        stage('Docker Build') {
-            steps {
-                sh 'docker system prune -f'
-                sh 'docker container prune -f'
-                sh '''
-                    docker build \
-                      -t ${AWS_ECR_REPO_NAME}:${BUILD_NUMBER} \
-                      -f ${APP_DIR}/Dockerfile \
-                      ${APP_DIR}
-                '''
-            }
-        }
-
-        stage('Trivy Image Scan') {
-            steps {
-                sh 'trivy image ${AWS_ECR_REPO_NAME}:${BUILD_NUMBER} > trivyimage.txt'
-                echo "Trivy image scan done — check trivyimage.txt"
-            }
-        }
-
-        stage('Push to ECR') {
-            steps {
-                sh '''
-                    aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | \
-                    docker login --username AWS --password-stdin ${REPOSITORY_URI}
-
-                    docker tag ${AWS_ECR_REPO_NAME}:${BUILD_NUMBER} \
-                               ${REPOSITORY_URI}/${AWS_ECR_REPO_NAME}:${BUILD_NUMBER}
-
-                    docker push ${REPOSITORY_URI}/${AWS_ECR_REPO_NAME}:${BUILD_NUMBER}
-                '''
-            }
-        }
-
-        stage('Update K8s Manifest') {
-            steps {
-                withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
                     sh '''
-                        git config user.email "jenkins@cloud-native.com"
-                        git config user.name "Jenkins CI"
-
-                        sed -i "s|image: .*|image: ${REPOSITORY_URI}/${AWS_ECR_REPO_NAME}:${BUILD_NUMBER}|g" \
-                            kubernetes/frontend/deployment.yaml
-
-                        git add kubernetes/frontend/deployment.yaml
-                        git commit -m "ci: update frontend image to build-${BUILD_NUMBER}"
-                        git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:master
+                        trivy fs . > trivy-fs-report.txt
                     '''
                 }
+            }
+        }
+
+        stage('Verify Frontend Folder') {
+            steps {
+                sh 'ls -la app/frontend'
+            }
+        }
+
+        stage('Build Frontend Docker Image') {
+            steps {
+
+                sh '''
+                    docker build -t frontend-app:latest \
+                    -f app/frontend/Dockerfile \
+                    app/frontend
+                '''
+            }
+        }
+
+        stage('Trivy Docker Image Scan') {
+            steps {
+
+                sh '''
+                    trivy image frontend-app:latest > trivy-image-report.txt
+                '''
+            }
+        }
+
+        stage('Frontend Docker Images') {
+            steps {
+                sh 'docker images'
             }
         }
     }
 
     post {
+
         success {
-            echo "✅ Frontend pipeline SUCCESS — build ${BUILD_NUMBER} live on ECR"
+            echo 'Frontend Pipeline Completed Successfully'
         }
+
         failure {
-            echo "❌ Frontend pipeline FAILED — check logs above"
-        }
-        always {
-            sh "docker rmi ${AWS_ECR_REPO_NAME}:${BUILD_NUMBER} || true"
-            sh "docker rmi ${REPOSITORY_URI}/${AWS_ECR_REPO_NAME}:${BUILD_NUMBER} || true"
-            cleanWs()
+            echo 'Frontend Pipeline Failed'
         }
     }
 }
