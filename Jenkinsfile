@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     stages {
-
+ 
         stage('Verify Server') {
             steps {
                 sh 'whoami'
