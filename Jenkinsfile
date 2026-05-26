@@ -6,7 +6,7 @@ pipeline {
         stage('Clone Repository') {
             steps {  
                 echo 'Cloning repository...'
-                git branch: 'main',
+                git branch: 'main', 
                 credentialsId: 'github-creds',
                 url: 'https://github.com/pravinchoudhari-01/Cloud-Native-DevSecOps-Platform-App.git'
             }
