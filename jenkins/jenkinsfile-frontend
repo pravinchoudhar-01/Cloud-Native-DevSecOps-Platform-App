@@ -1,4 +1,5 @@
 pipeline {
+
     agent any
 
     environment {
@@ -19,12 +20,15 @@ pipeline {
     stages {
 
         stage('Checkout Code') {
+
             steps {
+
                 checkout scm
             }
         }
 
         stage('Detect Frontend Changes') {
+
             steps {
 
                 script {
@@ -48,6 +52,7 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
+
             steps {
 
                 dir("${APP_DIR}") {
@@ -67,6 +72,7 @@ pipeline {
         }
 
         stage('Quality Gate') {
+
             steps {
 
                 timeout(time: 5, unit: 'MINUTES') {
@@ -77,6 +83,7 @@ pipeline {
         }
 
         stage('Trivy Filesystem Scan') {
+
             steps {
 
                 dir("${APP_DIR}") {
@@ -89,6 +96,7 @@ pipeline {
         }
 
         stage('Verify Frontend Folder') {
+
             steps {
 
                 sh 'ls -la app/frontend'
@@ -96,6 +104,7 @@ pipeline {
         }
 
         stage('Build Frontend Docker Image') {
+
             steps {
 
                 sh '''
@@ -107,6 +116,7 @@ pipeline {
         }
 
         stage('Trivy Docker Image Scan') {
+
             steps {
 
                 sh '''
@@ -116,16 +126,27 @@ pipeline {
         }
 
         stage('Login To AWS ECR') {
+
             steps {
 
-                sh '''
-                    aws ecr get-login-password --region ${AWS_REGION} | \
-                    docker login --username AWS --password-stdin ${ECR_URI}
-                '''
+                withCredentials([
+                    string(credentialsId: 'AWS_ACCESS_KEY_ID', variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'AWS_SECRET_ACCESS_KEY', variable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
+
+                    sh '''
+                        export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                        export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+
+                        aws ecr get-login-password --region ${AWS_REGION} | \
+                        docker login --username AWS --password-stdin ${ECR_URI}
+                    '''
+                }
             }
         }
 
         stage('Tag Docker Image') {
+
             steps {
 
                 sh '''
@@ -136,6 +157,7 @@ pipeline {
         }
 
         stage('Push Docker Image To ECR') {
+
             steps {
 
                 sh '''
@@ -145,6 +167,7 @@ pipeline {
         }
 
         stage('Frontend Docker Images') {
+
             steps {
 
                 sh 'docker images'
