@@ -22,7 +22,7 @@ pipeline {
 
         stage('Build Frontend Docker Image') {
             steps {
-                sh 'docker build -t frontend-test ./app/frontend/ .'
+                sh 'docker build -t frontend-test -f ./app/frontend/Dockerfile ./app/frontend'
             }
         }
 
