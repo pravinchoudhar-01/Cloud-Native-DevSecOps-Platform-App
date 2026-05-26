@@ -3,7 +3,7 @@ pipeline {
 
     stages {
  
-        stage('Verify Server') {
+        stage('Verify Server') { 
             steps { 
                 sh 'whoami'
                 sh 'docker --version'
