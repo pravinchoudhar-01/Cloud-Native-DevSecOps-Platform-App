@@ -2,8 +2,18 @@ pipeline {
     agent any
 
     environment {
+
         APP_DIR = "app/frontend"
+
         SONAR_SCANNER = tool 'sonar-scanner'
+
+        AWS_REGION = "us-east-1"
+
+        ECR_REPO = "frontend-app"
+
+        AWS_ACCOUNT_ID = "975049914104"
+
+        ECR_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
     }
 
     stages {
@@ -16,6 +26,7 @@ pipeline {
 
         stage('Detect Frontend Changes') {
             steps {
+
                 script {
 
                     def changedFiles = sh(
@@ -79,6 +90,7 @@ pipeline {
 
         stage('Verify Frontend Folder') {
             steps {
+
                 sh 'ls -la app/frontend'
             }
         }
@@ -87,7 +99,7 @@ pipeline {
             steps {
 
                 sh '''
-                    docker build -t frontend-app:latest \
+                    docker build -t frontend-app:${BUILD_NUMBER} \
                     -f app/frontend/Dockerfile \
                     app/frontend
                 '''
@@ -98,13 +110,43 @@ pipeline {
             steps {
 
                 sh '''
-                    trivy image frontend-app:latest > trivy-image-report.txt
+                    trivy image frontend-app:${BUILD_NUMBER} > trivy-image-report.txt
+                '''
+            }
+        }
+
+        stage('Login To AWS ECR') {
+            steps {
+
+                sh '''
+                    aws ecr get-login-password --region ${AWS_REGION} | \
+                    docker login --username AWS --password-stdin ${ECR_URI}
+                '''
+            }
+        }
+
+        stage('Tag Docker Image') {
+            steps {
+
+                sh '''
+                    docker tag frontend-app:${BUILD_NUMBER} \
+                    ${ECR_URI}/${ECR_REPO}:${BUILD_NUMBER}
+                '''
+            }
+        }
+
+        stage('Push Docker Image To ECR') {
+            steps {
+
+                sh '''
+                    docker push ${ECR_URI}/${ECR_REPO}:${BUILD_NUMBER}
                 '''
             }
         }
 
         stage('Frontend Docker Images') {
             steps {
+
                 sh 'docker images'
             }
         }
@@ -113,10 +155,12 @@ pipeline {
     post {
 
         success {
+
             echo 'Frontend Pipeline Completed Successfully'
         }
 
         failure {
+
             echo 'Frontend Pipeline Failed'
         }
     }
