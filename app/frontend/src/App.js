@@ -5,7 +5,7 @@ import "./App.css"; // Update your CSS file accordingly
 
 class App extends Tasks {
     state = { tasks: [], currentTask: "" };
-
+ 
     render() {
         const { tasks, currentTask } = this.state;
         return (
