@@ -1,0 +1,71 @@
+pipeline {
+    agent any
+
+    environment {
+        APP_DIR = "app/frontend"
+    }
+
+    stages {
+
+        stage('Checkout Code') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Detect Frontend Changes') {
+            steps {
+                script {
+
+                    def changedFiles = sh(
+                        script: "git diff --name-only HEAD~1 HEAD",
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Changed Files:"
+                    echo changedFiles
+
+                    if (!changedFiles.contains("app/frontend/")) {
+
+                        currentBuild.result = 'NOT_BUILT'
+
+                        error("No frontend changes detected. Skipping pipeline.")
+                    }
+                }
+            }
+        }
+
+        stage('Verify Frontend Folder') {
+            steps {
+                sh 'ls -la app/frontend'
+            }
+        }
+
+        stage('Build Frontend Docker Image') {
+            steps {
+
+                sh '''
+                    docker build -t frontend-app:latest \
+                    -f app/frontend/Dockerfile \
+                    app/frontend
+                '''
+            }
+        }
+
+        stage('Frontend Docker Images') {
+            steps {
+                sh 'docker images'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Frontend Pipeline Completed Successfully'
+        }
+
+        failure {
+            echo 'Frontend Pipeline Failed'
+        }
+    }
+}
