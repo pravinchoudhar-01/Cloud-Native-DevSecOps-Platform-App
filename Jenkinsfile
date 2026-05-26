@@ -4,7 +4,7 @@ pipeline {
     stages {
  
         stage('Verify Server') {
-            steps {
+            steps { 
                 sh 'whoami'
                 sh 'docker --version'
                 sh 'kubectl version --client'
