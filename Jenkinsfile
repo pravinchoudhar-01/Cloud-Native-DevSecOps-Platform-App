@@ -8,7 +8,7 @@ pipeline {
                 echo 'Cloning repository...'
                 git branch: 'main', 
                 credentialsId: 'github-creds',
-                url: 'https://github.com/pravinchoudhari-01/Cloud-Native-DevSecOps-Platform-App.git'
+                url: 'https://github.com/pravinchoudhar-01/Cloud-Native-DevSecOps-Platform-App.git'
             }
         }
 
