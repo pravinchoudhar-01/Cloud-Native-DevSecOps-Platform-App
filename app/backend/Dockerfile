@@ -12,7 +12,7 @@ COPY package*.json ./
 RUN npm install 
 
 # Copy application code
-COPY . .
+COPY . . 
 
 # =========================
 # Stage 2 - Production Stage
