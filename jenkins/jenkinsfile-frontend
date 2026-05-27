@@ -46,7 +46,7 @@ pipeline {
 
                         currentBuild.result = 'NOT_BUILT'
 
-                        return
+                        error("Skipping Jenkins auto commit build")
                     }
                 }
             }
@@ -83,7 +83,7 @@ pipeline {
 
                         currentBuild.result = 'NOT_BUILT'
 
-                        return
+                        error("No frontend changes detected")
                     }
                 }
             }
