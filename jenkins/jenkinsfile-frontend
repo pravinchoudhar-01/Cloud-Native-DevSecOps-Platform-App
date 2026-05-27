@@ -223,7 +223,11 @@ pipeline {
             steps {
 
                 withCredentials([
-                    string(credentialsId: 'github-creds', variable: 'GITHUB_TOKEN')
+                    usernamePassword(
+                        credentialsId: 'github-creds',
+                        usernameVariable: 'GITHUB_USERNAME',
+                        passwordVariable: 'GITHUB_PASSWORD'
+                    )
                 ]) {
 
                     sh '''
@@ -234,7 +238,7 @@ pipeline {
 
                         git commit -m "Update frontend image tag to ${BUILD_NUMBER}" || true
 
-                        git push https://${GITHUB_TOKEN}@github.com/pravinchoudhar-01/Cloud-Native-DevSecOps-Platform-App.git HEAD:master
+                        git push https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@github.com/pravinchoudhar-01/Cloud-Native-DevSecOps-Platform-App.git HEAD:master
                     '''
                 }
             }
