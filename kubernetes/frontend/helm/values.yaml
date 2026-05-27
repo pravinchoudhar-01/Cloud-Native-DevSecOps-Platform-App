@@ -9,7 +9,7 @@ namespace: frontend
 
 image:
   repository: 975049914104.dkr.ecr.us-east-1.amazonaws.com/frontend-app
-  tag: "latest"         # Jenkins updates this to BUILD_NUMBER on every run
+  tag: "77"
   pullPolicy: Always
 
 imagePullSecrets:
