@@ -33,19 +33,29 @@ pipeline {
 
                 script {
 
-                    def changedFiles = sh(
-                        script: "git diff --name-only HEAD~1 HEAD",
-                        returnStdout: true
-                    ).trim()
+                    def backendChanged = false
 
-                    echo "Changed Files:"
-                    echo changedFiles
+                    for (changeLog in currentBuild.changeSets) {
 
-                    if (!changedFiles.contains("app/backend/")) {
+                        for (entry in changeLog.items) {
+
+                            for (file in entry.affectedFiles) {
+
+                                echo "Changed File: ${file.path}"
+
+                                if (file.path.startsWith("app/backend/")) {
+
+                                    backendChanged = true
+                                }
+                            }
+                        }
+                    }
+
+                    if (!backendChanged) {
 
                         currentBuild.result = 'NOT_BUILT'
 
-                        error("No backend changes detected. Skipping pipeline.")
+                        return
                     }
                 }
             }
