@@ -5,7 +5,7 @@ FROM node:16-alpine AS builder
 
 WORKDIR /app
    
-# Copy package files 
+# Copy package files  
 COPY package*.json ./   
   
 # Install dependencies   
