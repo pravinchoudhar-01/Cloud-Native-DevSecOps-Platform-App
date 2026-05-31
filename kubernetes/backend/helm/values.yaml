@@ -19,7 +19,7 @@ container:
   port: 3500            # Node.js/Express runs on 3500
 
 service:
-  type: ClusterIP       # internal only — frontend calls this
+  type: LoadBalancer       # internal only — frontend calls this
   port: 3500
 
 # MongoDB connection using Kubernetes internal DNS
