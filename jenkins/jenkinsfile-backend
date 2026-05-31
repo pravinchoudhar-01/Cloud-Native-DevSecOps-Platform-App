@@ -15,6 +15,8 @@ pipeline {
         AWS_ACCOUNT_ID = "975049914104"
 
         ECR_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+
+        HELM_VALUES_FILE = "kubernetes/backend/helm/values.yaml"
     }
 
     stages {
@@ -24,6 +26,29 @@ pipeline {
             steps {
 
                 checkout scm
+            }
+        }
+
+        stage('Skip Jenkins Auto Commit') {
+
+            steps {
+
+                script {
+
+                    def commitAuthor = sh(
+                        script: "git log -1 --pretty=%an",
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Latest Commit Author: ${commitAuthor}"
+
+                    if (commitAuthor == "Jenkins") {
+
+                        currentBuild.result = 'NOT_BUILT'
+
+                        error("Skipping Jenkins auto commit build")
+                    }
+                }
             }
         }
 
@@ -43,7 +68,10 @@ pipeline {
 
                                 echo "Changed File: ${file.path}"
 
-                                if (file.path.startsWith("app/backend/")) {
+                                if (
+                                    file.path.startsWith("app/backend/") ||
+                                    file.path.startsWith("kubernetes/backend/")
+                                ) {
 
                                     backendChanged = true
                                 }
@@ -55,7 +83,7 @@ pipeline {
 
                         currentBuild.result = 'NOT_BUILT'
 
-                        return
+                        error("No backend changes detected")
                     }
                 }
             }
@@ -73,8 +101,7 @@ pipeline {
                             ${SONAR_SCANNER}/bin/sonar-scanner \
                             -Dsonar.projectKey=backend-app \
                             -Dsonar.projectName=backend-app \
-                            -Dsonar.sources=. \
-                            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+                            -Dsonar.sources=.
                         """
                     }
                 }
@@ -173,6 +200,46 @@ pipeline {
                 sh '''
                     docker push ${ECR_URI}/${ECR_REPO}:${BUILD_NUMBER}
                 '''
+            }
+        }
+
+        stage('Update Helm Chart Image Tag') {
+
+            steps {
+
+                sh '''
+                    sed -i 's/tag:.*/tag: "'"${BUILD_NUMBER}"'"/' ${HELM_VALUES_FILE}
+
+                    echo "Updated Helm values.yaml"
+
+                    cat ${HELM_VALUES_FILE}
+                '''
+            }
+        }
+
+        stage('Push Updated Helm Chart To GitHub') {
+
+            steps {
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'github-creds',
+                        usernameVariable: 'GITHUB_USERNAME',
+                        passwordVariable: 'GITHUB_PASSWORD'
+                    )
+                ]) {
+
+                    sh '''
+                        git config user.email "jenkins@devsecops.com"
+                        git config user.name "Jenkins"
+
+                        git add ${HELM_VALUES_FILE}
+
+                        git commit -m "Update backend image tag to ${BUILD_NUMBER}" || true
+
+                        git push https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@github.com/pravinchoudhar-01/Cloud-Native-DevSecOps-Platform-App.git HEAD:master
+                    '''
+                }
             }
         }
 
