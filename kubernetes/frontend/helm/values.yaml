@@ -9,7 +9,7 @@ namespace: frontend
 
 image:
   repository: 975049914104.dkr.ecr.us-east-1.amazonaws.com/frontend-app
-  tag: "82"
+  tag: "91"
   pullPolicy: Always
 
 imagePullSecrets:
