@@ -3,7 +3,7 @@
 # Jenkins auto-updates `image.tag` on every build
 # ============================================================
 
-replicaCount: 2
+replicaCount: 1
 
 namespace: frontend
 
