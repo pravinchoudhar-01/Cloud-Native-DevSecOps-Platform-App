@@ -9,7 +9,7 @@ replicaCount: 2
 
 image:
   repository: 975049914104.dkr.ecr.us-east-1.amazonaws.com/backend-app
-  tag: "latest"         # Jenkins updates this on every build
+  tag: "41"
   pullPolicy: Always
 
 imagePullSecrets:
