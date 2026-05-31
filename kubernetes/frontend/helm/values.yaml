@@ -23,7 +23,7 @@ service:
   port: 80             # service exposes port 80
 
 env:
-  REACT_APP_BACKEND_URL: "http://backend.backend.svc.cluster.local:3500/api/tasks"
+  REACT_APP_BACKEND_URL: "http://cloud-native-backend.backend.svc.cluster.local:3500/api/tasks"
   # format: http://<service-name>.<namespace>.svc.cluster.local:<port>
 
 ingress:
