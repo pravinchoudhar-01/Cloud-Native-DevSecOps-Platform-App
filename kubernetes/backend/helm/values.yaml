@@ -9,7 +9,7 @@ replicaCount: 1
 
 image:
   repository: 975049914104.dkr.ecr.us-east-1.amazonaws.com/backend-app
-  tag: "47"
+  tag: "53"
   pullPolicy: Always
 
 imagePullSecrets:
