@@ -19,7 +19,7 @@ container:
   port: 80             # nginx serves on port 80 inside the container
 
 service:
-  type: ClusterIP
+  type: LoadBalancer
   port: 80             # service exposes port 80
 
 env:
