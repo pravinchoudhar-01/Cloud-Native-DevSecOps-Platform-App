@@ -17,7 +17,7 @@ COPY . .
 # =========================
 # Stage 2 - Production Stage
 # =========================
-FROM node:18-alpine
+FROM node:18-alpine 
 
 WORKDIR /app
 
