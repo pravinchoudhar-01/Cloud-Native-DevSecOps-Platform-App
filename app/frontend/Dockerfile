@@ -13,7 +13,9 @@ RUN npm install
  
 # Copy source code
 COPY . .
-
+# Build arg passed during docker build
+ARG REACT_APP_BACKEND_URL
+ENV REACT_APP_BACKEND_URL=$REACT_APP_BACKEND_URL
 # Build production app
 RUN npm run build
 
